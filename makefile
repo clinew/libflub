@@ -1,12 +1,12 @@
 compiler = gcc
-flags = --pedantic-errors -Wall -Werror -fPIC -std=c99
+flags = -O2 --pedantic-errors -Wall -Werror -fPIC -std=c99
 objects = flub.o
 
 
 # Version information.
-major_number = 0
+major_number = 1
 minor_number = 0
-release_number = 1
+release_number = 0
 version = ${major_number}.${minor_number}.${release_number}
 
 # Library name.
@@ -53,11 +53,11 @@ done:
 install_actual:
 	@echo "Installing."
 	@# Install library files.
-	@mv ${real_name} ${library_path}
+	@cp ${real_name} ${library_path}
 	@ln -sf ${library_path}${real_name} ${library_path}${linker_name}
 	@ln -sf ${library_path}${real_name} ${library_path}${soname}
 	@# Make header files readable to all.
-	@chmod 0744 ${include_path}*.h
+	@chmod 0644 *.h
 	@# Install header files.
 	@cp -f *.h ${include_path}
 
