@@ -1,0 +1,107 @@
+Please note that this README has not been peer-reviewed. If you find any flaws in
+it or in the library, please e-mail the author at clinew@onid.orst.edu.
+
+Introduction:
+
+libflub is a simple way to handle errors in C code. The structure allows the
+user to easily specify an error message, stack trace, and error code.
+
+Rather than having each function return an integer indicating success or
+failure, the function will simply return a pointer to a flub structure. If the
+pointer is non-null, then an error occurred and the stucture can be printed,
+or it can have the calling function's name appended to it and then be returned
+again until a function decides to handle it be printing and/or freeing the flub.
+
+Example:
+
+A function foo() can return an error with:
+
+	#define ERROR_CODE 1
+	...
+	char* function_name = "foo()";
+	...
+	return flub_throw("An error occurred!", function_name, ERROR_CODE);
+	...
+
+The calling function, bar(), can then return the error back to its caller with:
+
+	char* function_name = "bar()";
+	struct flub* flub;
+	...
+	flub = foo();
+	if (flub) { // Represents failure.
+		return flub_append(flub, function_name);
+	}
+	return NULL; // Represents success.
+	...
+
+Then bar()'s calling function, main(), can print the error with:
+
+	struct flub* flub;
+	...
+	flub = bar();
+	if (flub) {
+		flub = flub_catch(flub);
+	}
+	...
+
+flub_catch() will then print:
+
+	*** FLUB ***
+	Error Code: 1
+	Message: An error occurred!
+	Stack Trace: 
+		-foo()
+		-bar()
+	*****************
+
+This allows one to easily find what caused the error. Of course, all the extra
+space for statically-allocated strings is likely not welcome in a finished 
+product. Therefore, one can define FLUB_COMPACT before including flub.h (the
+best way to do this is in a typedef.h file that all other files include). In
+this case, the struct flub pointer will actually contain the value of the error
+code in its pointer and won't actually point to a flub structure. The functions
+will handle all of this transparently
+
+For example, suppose the previous code had the following segment:
+
+	...
+	#define FLUB_COMPACT
+	#include <flub.h>
+	...
+
+Then the output of flub_catch() would be:
+
+	Error Code: 1.
+
+and the string "An error occurred!" would not be included in the program
+output, and neither are the function names if optimization is specified
+(-O2 seems to work on gcc, but the function names are included when no
+optimization is specified).
+
+Alternatively, if one simply wants to extract the error code from the flub,
+they can use the flub_yoink() function.
+
+	unsigned long error_code;
+	...
+	error_code = flub_yoink(flub);
+	...
+
+The flub_yoink() function will know whether to cast the pointer back into
+an unsigned long or whether to dereference the structure and return the
+appropriate member.
+
+Caveats:
+
+Make sure to consistently define FLUB_COMPACT before including flub.h.
+Otherwise, some functions may try to dereference the pointer when the pointer
+is actually an error code. This will most likely cause a segmentation fault.
+The best way to do this is to have a typedef.h file that all other code files
+include that will include flub.h and the proper define, or lack thereof.
+
+The value of zero is -never- a valid error code. This is because if
+FLUB_COMPACT is enabled, the value of zero will be assigned to the pointer.
+In this case, all checks for flub in the form of "if (flub)" will return false,
+and the program will assume no error occurred. Warnings have been placed in the
+non-compact version of flub_throw() to hopefully prevent this from
+inadvertently happening.

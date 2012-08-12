@@ -3,3 +3,6 @@ libflub.so.*
 
 # Doxygen output.
 doxygen
+
+# vim spam.
+.*.swp

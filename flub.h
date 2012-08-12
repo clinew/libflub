@@ -27,6 +27,38 @@
 #include <stdlib.h>
 
 
+// These macros take the specified flub functions and replace them with the
+// appropriate compact/normal versions of the functions, depending on whether
+// the user has specified compact flubs or not.
+#ifdef FLUB_COMPACT
+#define flub_append(flub, function_name) \
+	flub_append_compact(flub)
+#define flub_catch(flub) \
+	flub_catch_compact(flub)
+#define flub_free(flub) \
+	flub_free_compact(flub)
+#define flub_print(flub) \
+	flub_print_compact(flub)
+#define flub_throw(message, function_name, error_code) \
+	flub_throw_compact(error_code)
+#define flub_yoink(flub) \
+	flub_yoink_compact(flub)
+#else
+#define flub_append(flub, function_name) \
+	flub_append_normal(flub, function_name)
+#define flub_catch(flub) \
+	flub_catch_normal(flub)
+#define flub_free(flub) \
+	flub_free_normal(flub)
+#define flub_print(flub) \
+	flub_print_normal(flub)
+#define flub_throw(message, function_name, error_code) \
+	flub_throw_normal(message, function_name, error_code)
+#define flub_yoink(flub) \
+	flub_yoink_normal(flub)
+#endif
+
+
 /*!	\brief An error-reporting structure that can be returned from a
  *	function in order to provide debugging information to the caller.
  */
@@ -35,9 +67,22 @@ struct flub {
 	char* message;
 	//! Contains the stack trace from where the flub occurred.
 	char* stack_trace;
-	//! Contains the error code of the type of flub.
-	int error_code;
+	//! Contains the error code of the type of flub. Zero -must- indicate
+	//  success in order for compact errors to be reported properly.
+	unsigned long error_code;
 };
+
+
+/*!	\brief Simply returns the pointer to the specified flub.
+ *
+ * 	\warning Do not call this function yourself; it will be called
+ * 	automatically by flub_append() when compact flubs are set.
+ * 	\warning The pointer to the flub is really an unsigned long error code
+ * 	in disguise. Dereferencing it will cause undefined behaviour.
+ *
+ * 	\return	The pointer to the specified flub.
+ */
+struct flub* flub_append_compact(struct flub* flub);
 
 
 /*!	\brief Appends the specified function name to the specified flub's
@@ -46,35 +91,91 @@ struct flub {
  *	\note Will exit the program on error, which is most likely to occurr
  *	from a malloc failure.
  *
- *	\return	Returns a pointer to the specified flub.
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_append() when compact flubs are not set.
+ *
+ *	\return	The pointer to the specified flub.
  */
-struct flub* flub_append(struct flub* flub, char* function_name);
+struct flub* flub_append_normal(struct flub* flub, char* function_name);
+
+
+/*!	\brief Prints the specified flub's error code to standard error and
+ * 	then returns 0.
+ *
+ * 	\warning Do not call this function yourself; it will be called 
+ * 	automatically by flub_catch() when compact flubs are set.
+ *	\warning The pointer to the flub is really an unsigned long error code
+ * 	in disguise. Dereferencing it will cause undefined behaviour.
+ * 	
+ * 	\return The pointer to the specified flub.
+ */
+struct flub* flub_catch_compact(struct flub* flub);
 
 
 /*!	\brief Prints the specified flub's message and stack trace to standard 
  *	error and then frees the specified flub. Returns NULL (allowing one to
  *	easily reset a local variable).
  *
- *	\note Implemented by calling flub_print and then flub_free.
- *	
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_catch() when compact flubs are not set.
+ *
  *	\return	NULL.
  */
-struct flub* flub_catch(struct flub* flub);
+struct flub* flub_catch_normal(struct flub* flub);
+
+
+/*!	\brief Returns 0.
+ *
+ * 	\warning The pointer to the flub is really an unsigned long error code
+ * 	in disguise. Dereferencing it will cause undefined behaviour.
+ * 	\warning Do not call this function yourself; it will be called
+ * 	automatically by flub_free() when compact flubs are set.
+ *
+ * 	\return	0.
+ */
+struct flub* flub_free_compact(struct flub* flub);
 
 
 /*!	\brief Frees any resources associated with the specified flub.
  *
  *	\note Returns NULL so that the calling code need not reset its local
  *	variable on a following line.
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_free() when compact flubs are not set.
  *
  *	\return	NULL.
  */
-struct flub* flub_free(struct flub* flub);
+struct flub* flub_free_normal(struct flub* flub);
+
+
+/*!	\brief Prints the error code of the specified flub to standard error.
+ *
+ * 	\warning The pointer to the flub is really an unsigned long error code
+ * 	in disguise. Dereferencing it will cause undefined behaviour.
+ * 	\warning Do not call this function yourself; it will be called
+ * 	automatically by flub_print() when compact flubs are set.
+ */
+void flub_print_compact(struct flub* flub);
 
 
 /*!	\brief Prints the specified flub to standard error.
+ *
+ * 	\warning Do not call this function yourself; it will be called
+ * 	automatically by flub_print() when compact flubs are not set.
  */
-void flub_print(struct flub* flub);
+void flub_print_normal(struct flub* flub);
+
+
+/*!	\brief Initializes a flub with the specified error code.
+ *
+ * 	\warning The pointer to the flub is really an unsigned long error code
+ * 	in disguise. Dereferencing it will cause undefined behaviour.
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_throw() when compact flubs are set.
+ *
+ * 	\return	The error code cast as a struct flub pointer.
+ */
+struct flub* flub_throw_compact(unsigned long error_code);
 
 
 /*!	\brief Initializes a flub with the specified values. This will
@@ -87,8 +188,38 @@ void flub_print(struct flub* flub);
  *					the flub.
  *	\param[in]	function_name	The name of the function in which 
  *					the flub was thrown.
+ *
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_throw() when compact flubs are not set.
+ *	\warning Remember to free the flub using flub_catch() or
+ *	flub_free().
+ *
+ * 	\return	A pointer to the newly-initialized flub.
  */
-struct flub* flub_throw(char* message, char* function_name, int error_code);
+struct flub* flub_throw_normal(char* message, char* function_name, 
+			unsigned long error_code);
 
 
-#endif
+/*!	\brief Get the error code of the specified flub.
+ *
+ * 	\warning The pointer to the flub is really an unsigned long error code
+ * 	in disguise. Dereferencing it will cause undefined behaviour.
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_throw() when compact flubs are set.
+ *
+ *	\return The error code of the specified flub.
+ */
+unsigned long flub_yoink_compact(struct flub* flub);
+
+
+/*!	\brief Get the error code of the specified flub.
+ *
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_throw() when compact flubs are set.
+ *
+ * 	\return	The error code of the specified flub.
+ */
+unsigned long flub_yoink_normal(struct flub* flub);
+
+
+#endif // flub_H

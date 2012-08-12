@@ -93,7 +93,13 @@ char* flub_string_copy(char* source) {
 }
 
 
-struct flub* flub_append(struct flub* flub, char* function_name) {
+struct flub* flub_append_compact(struct flub* flub) {
+	// Return the specified flub.
+	return flub;
+}
+
+
+struct flub* flub_append_normal(struct flub* flub, char* function_name) {
 	char* temp_string;
 
 	// Validate arguments.
@@ -138,7 +144,16 @@ struct flub* flub_append(struct flub* flub, char* function_name) {
 }
 
 
-struct flub* flub_catch(struct flub* flub) {
+struct flub* flub_catch_compact(struct flub* flub) {
+	// Print the specified flub's message.
+	flub_print_compact(flub);
+
+	// Return no error.
+	return 0;
+}
+
+
+struct flub* flub_catch_normal(struct flub* flub) {
 	// Validate arugments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
@@ -156,7 +171,13 @@ struct flub* flub_catch(struct flub* flub) {
 }
 
 
-struct flub* flub_free(struct flub* flub) {
+struct flub* flub_free_compact(struct flub* flub) {
+	// Return success. Nothing needs to be done.
+	return NULL;
+}
+
+
+struct flub* flub_free_normal(struct flub* flub) {
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
@@ -178,11 +199,17 @@ struct flub* flub_free(struct flub* flub) {
 }
 
 
-void flub_print(struct flub* flub) {
+void flub_print_compact(struct flub* flub) {
+	// Print the error code.
+	fprintf(stderr, "Error Code: %lu.\n", (unsigned long)flub);
+}
+
+
+void flub_print_normal(struct flub* flub) {
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
-		fprintf(stderr, "flub_print failed: struct flub " \
+		fprintf(stderr, "flub_print() failed: struct flub " \
 			"is NULL.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -190,8 +217,8 @@ void flub_print(struct flub* flub) {
 
 	// Print the flub to standard error.
 	fprintf(stderr, "\n*** FLUB ***\n" \
-		"Error Code: %i\n" \
-		"Message: %s\n:" \
+		"Error Code: %lu\n" \
+		"Message: %s\n" \
 		"Stack Trace: \n\t-%s\n" \
 		"*****************\n\n", \
 		flub->error_code, flub->message, 
@@ -199,7 +226,16 @@ void flub_print(struct flub* flub) {
 }
 
 
-struct flub* flub_throw(char* message, char* function_name, int error_code) {
+struct flub* flub_throw_compact(unsigned long error_code) {
+	// A little dirty. Since we specified an unsigned long, cast the long
+	// to a struct flub pointer and read the value of the pointer. This
+	// will work as long as the successful error code is defined to be 0.
+	// Also, don't ever de-reference the structure.
+	return (struct flub*)error_code;
+}
+
+
+struct flub* flub_throw_normal(char* message, char* function_name, unsigned long error_code) {
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (message == NULL) {
@@ -213,6 +249,14 @@ struct flub* flub_throw(char* message, char* function_name, int error_code) {
 		exit(EXIT_FAILURE);
 	}
 	#endif
+
+	// Check for zero error code.
+	if (error_code == 0) {
+		fprintf(stderr, "WARNING!\nWARNING!\nWARNING!\n" \
+			"Using zero value for error_code of flub " \
+			"will almost certainly break compact flub; " \
+			"consider using a non-zero error_code.\n");
+	}
 
 	// Allocate space for the new flub.
 	struct flub* flub = (struct flub*)malloc(
@@ -247,3 +291,23 @@ struct flub* flub_throw(char* message, char* function_name, int error_code) {
 	return flub;
 }
 
+
+unsigned long flub_yoink_compact(struct flub* flub) {
+	// Cast the flub back into its true form and return it!
+	return (unsigned long)flub;
+}
+
+
+unsigned long flub_yoink_normal(struct flub* flub) {
+	// Validate parameters.
+	#ifdef DEBUG_FLUB
+	if (flub == NULL) {
+		fprintf(stderr, "flub_yoink failed: " \
+			"flub was NULL.\n");
+		exit(EXIT_FAILURE);
+	}
+	#endif
+
+	// Return the error code.
+	return flub->error_code;
+}
