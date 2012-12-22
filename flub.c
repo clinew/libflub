@@ -18,7 +18,7 @@
  * 	\return Pointer to a newly allocated character array containing the 
  *	concatenation of the specified head and tail.
  */
-char* flub_string_append(char* head, char* tail) {
+static char* flub_string_append(char* head, char* tail) {
 	char* appended_string;
 	int head_length;
 	int tail_length;
@@ -61,7 +61,7 @@ char* flub_string_append(char* head, char* tail) {
  *
  * 	\return	Pointer to a newly-allocated character array.
  */
-char* flub_string_copy(char* source) {
+static char* flub_string_copy(char* source) {
 	char* copied_string = NULL;
 	int length = -1;
 
