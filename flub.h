@@ -35,10 +35,16 @@
 	flub_append_compact(flub)
 #define flub_catch(flub) \
 	flub_catch_compact(flub)
+#define flub_error_code_get(flub) \
+	flub_error_code_get_compact(flub)
 #define flub_free(flub) \
 	flub_free_compact(flub)
+#define flub_message_get(flub) \
+	flub_message_get_compact(flub)
 #define flub_print(flub) \
 	flub_print_compact(flub)
+#define flub_stack_trace_get(flub) \
+	flub_stack_trace_get_compact(flub)
 #define flub_throw(message, function_name, error_code) \
 	flub_throw_compact(error_code)
 #define flub_yoink(flub) \
@@ -48,10 +54,16 @@
 	flub_append_normal(flub, function_name)
 #define flub_catch(flub) \
 	flub_catch_normal(flub)
+#define flub_error_code_get(flub) \
+	flub_error_code_get_normal(flub)
 #define flub_free(flub) \
 	flub_free_normal(flub)
+#define flub_message_get(flub) \
+	flub_message_get_normal(flub)
 #define flub_print(flub) \
 	flub_print_normal(flub)
+#define flub_stack_trace_get(flub) \
+	flub_stack_trace_get_normal(flub)
 #define flub_throw(message, function_name, error_code) \
 	flub_throw_normal(message, function_name, error_code)
 #define flub_yoink(flub) \
@@ -124,6 +136,27 @@ struct flub* flub_catch_compact(struct flub* flub);
 struct flub* flub_catch_normal(struct flub* flub);
 
 
+/*!	\brief Casts the specified flub pointer back into the error code it
+ *	represents and returns that value.
+ *
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_error_code_get() when compact flubs are set.
+ *
+ *	\return The error code embeded within the specified flub pointer.
+ */
+unsigned long flub_error_code_get_compact(struct flub* flub);
+
+
+/*!	\brief Returns the error codes of the specified flub.
+ *
+ * 	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_error_code_get() when compact flubs are not set.
+ *
+ * 	\return The error code of the specified flub.
+ */
+unsigned long flub_error_code_get_normal(struct flub* flub);
+
+
 /*!	\brief Returns 0.
  *
  * 	\warning The pointer to the flub is really an unsigned long error code
@@ -148,6 +181,28 @@ struct flub* flub_free_compact(struct flub* flub);
 struct flub* flub_free_normal(struct flub* flub);
 
 
+/*!	\brief Returns NULL.
+ *
+ * 	There's no string here, so there is likewise nothing to return.
+ *
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_message_get() when compact flubs are set.
+ *
+ *	\return NULL.
+ */
+char* flub_message_get_compact(struct flub* flub);
+
+
+/*!	\brief Returns the specified flub's message.
+ *
+ *	\warning Do not call this function yourself; it will be called
+ *	automatically by flub_message_get() when compact flubs are not set.
+ *
+ *	\return The specified flub's message.
+ */
+char* flub_message_get_normal(struct flub* flub);
+
+
 /*!	\brief Prints the error code of the specified flub to standard error.
  *
  * 	\warning The pointer to the flub is really an unsigned long error code
@@ -164,6 +219,32 @@ void flub_print_compact(struct flub* flub);
  * 	automatically by flub_print() when compact flubs are not set.
  */
 void flub_print_normal(struct flub* flub);
+
+
+/*!	\brief Returns NULL.
+ *
+ * 	The pointer is just an error code and doesn't actually contain
+ * 	a stack trace; return NULL.
+ *
+ * 	\warning Do not call this function yourself; it will be called
+ * 	automatically by flub_stack_trace_get() when compact flubs are set.
+ *
+ * 	\return NULL.
+ */
+char* flub_stack_trace_get_compact(struct flub* flub);
+
+
+/*!	\brief Returns the specified flub's stack trace.
+ *
+ * 	Considering that this is just a raw string, I have no idea why you
+ * 	would actually want this, but, just in case...
+ *
+ * 	\warning Do not call this function yourself; it will be called
+ * 	automatically by flub_stack_trace_get() when compact flubs are not set.
+ *
+ * 	\return The specified flub's stack trace.
+ */
+char* flub_stack_trace_get_normal(struct flub* flub);
 
 
 /*!	\brief Initializes a flub with the specified error code.

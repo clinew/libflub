@@ -171,6 +171,17 @@ struct flub* flub_catch_normal(struct flub* flub) {
 }
 
 
+unsigned long flub_error_code_get_compact(struct flub* flub) {
+	// Just call the compact version of flub yoink.
+	return flub_yoink_compact(flub);
+}
+
+
+unsigned long flub_error_code_get_normal(struct flub* flub) {
+	// Just call the normal version of flub yoink.
+	return flub_yoink_normal(flub);
+}
+
 struct flub* flub_free_compact(struct flub* flub) {
 	// Return success. Nothing needs to be done.
 	return NULL;
@@ -196,6 +207,27 @@ struct flub* flub_free_normal(struct flub* flub) {
 
 	// Return success.
 	return NULL;
+}
+
+
+char* flub_message_get_compact(struct flub* flub) {
+	// Return nothing; there's no string to return.
+	return NULL;
+}
+
+
+char* flub_message_get_normal(struct flub* flub) {
+	// Validate arguments.
+	#ifdef DEBUG_FLUB
+	if (flub == NULL) {
+		fprintf(stderr, "flub_message_get() failed: " \
+			"struct flub is NULL.\n");
+		exit(EXIT_FAILURE);
+	}
+	#endif
+
+	// Return the specified flub's message.
+	return flub->message;
 }
 
 
@@ -226,9 +258,30 @@ void flub_print_normal(struct flub* flub) {
 }
 
 
+char* flub_stack_trace_get_compact(struct flub* flub) {
+	// Return NULL; there's no actual stack trace attached.
+	return NULL;
+}
+
+
+char* flub_stack_trace_get_normal(struct flub* flub) {
+	// Validate arguments.
+	#ifdef DEBUG_FLUB
+	if (flub == NULL) {
+		fprintf(stderr, "flub_stack_trace_get() failed; struct flub " \
+			"is NULL.\n");
+		exit(EXIT_FAILURE);
+	}
+	#endif
+
+	// Return the stack trace.
+	return flub->stack_trace;
+}
+
+
 struct flub* flub_throw_compact(unsigned long error_code) {
 	// A little dirty. Since we specified an unsigned long, cast the long
-	// to a struct flub pointer and read the value of the pointer. This
+	// to a struct flub pointer and return the value of the pointer. This
 	// will work as long as the successful error code is defined to be 0.
 	// Also, don't ever de-reference the structure.
 	return (struct flub*)error_code;
