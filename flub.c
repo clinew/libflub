@@ -13,86 +13,6 @@
 #include "flub.h"
 
 
-/*!	\brief Internal string append function.
- *
- * 	\return Pointer to a newly allocated character array containing the 
- *	concatenation of the specified head and tail.
- */
-static char* flub_string_append(char* head, char* tail) {
-	char* appended_string;
-	int head_length;
-	int tail_length;
-
-	// Validate arguments.
-	#ifdef DEBUG_FLUB
-	if (head == NULL || tail == NULL) {
-		fprintf(stderr, "flub_string_append failed: Destination " \
-			"or source string was null.\n");
-		return NULL;
-	}
-	#endif
-
-	// Get the length of each string.
-	head_length = strlen(head);
-	tail_length = strlen(tail);
-
-	// Allocate space for the two appended strings; equal to the length of
-	// both strings combined, plus one for the null character.
-	appended_string = (char*)malloc((sizeof(char) * (head_length + 
-			  tail_length)) + 1);
-	if (appended_string == NULL) {
-		fprintf(stderr, "flub_string_append failed: Unable to " \
-			"allocate space for the new string.\n");
-		return NULL;
-	}
-
-	// Copy the head char array to the newly allocated char array.
-	strcpy(appended_string, head);
-
-	// Concatenate the tail char array to the newly allocated char array.
-	strcat(appended_string, tail);
-
-	// Return the concatenated char array.
-	return appended_string;
-}
-
-
-/*!	\brief Internal string copy function.
- *
- * 	\return	Pointer to a newly-allocated character array.
- */
-static char* flub_string_copy(char* source) {
-	char* copied_string = NULL;
-	int length = -1;
-
-	// Validate arguments.
-	#ifdef DEBUG_FLUB
-	if (source == NULL) {
-		fprintf(stderr, "flub_string_copy failed: Specified " \
-			"string was NULL.\n");
-		return NULL;
-	}
-	#endif
-
-	// Get the length of the string.
-	length = strlen(source);
-
-	// Allocate memory for the new char array.
-	copied_string = (char*)malloc((sizeof(char) * length) + 1);
-	if (copied_string == NULL) {
-		fprintf(stderr, "flub_string_copy failed: Unable to " \
-			"allocate memory.\n");
-		return NULL;
-	}
-
-	// Copy the source char array into the newly allocated char array.
-	strcpy(copied_string, source);
-
-	// Return the newly allocated char array.
-	return copied_string;
-}
-
-
 struct flub* flub_append_compact(struct flub* flub) {
 	// Return the specified flub.
 	return flub;
@@ -100,44 +20,38 @@ struct flub* flub_append_compact(struct flub* flub) {
 
 
 struct flub* flub_append_normal(struct flub* flub, char* function_name) {
-	char* temp_string;
+	size_t length;
 
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
-		fprintf(stderr, "flub_append failed: flub is " \
+		fprintf(stderr, "flub_append() failed: flub is " \
 			"NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	if (function_name == NULL) {
-		fprintf(stderr, "flub_append failed: function_name " \
+		fprintf(stderr, "flub_append() failed: function_name " \
 			"is NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	#endif
 
+	// Calculate the new length of the stack trace.
+	// +4 for extra whitespace characters and null byte.
+	length = strlen(flub->stack_trace) + strlen(function_name) + 4;
+
+	// Reallocate space for the stack trace.
+	if (realloc(flub->stack_trace, length) == NULL) {
+		fprintf(stderr, "flub_append() failed: unable to reallocate " \
+				"space.\n");
+		return flub;
+	}
+
 	// Add a newline, tab, and list marker to the flub's stack trace.
-	// TODO: Refactor into using realloc().
-	temp_string = flub->stack_trace;
-	flub->stack_trace = flub_string_append(temp_string, "\n\t-");
-	if (flub->stack_trace == NULL) {
-		fprintf(stderr, "flub_append failed: unable to append " \
-			"\"\\n\".\n");
-		exit(EXIT_FAILURE);
-	}
-	free(temp_string);
-	
+	strcat(flub->stack_trace, "\n\t-");
+
 	// Add the specified function name to the flub's stack trace.
-	// TODO: Refactor using realloc().
-	temp_string = flub->stack_trace;
-	flub->stack_trace = flub_string_append(temp_string, 
-							 function_name);
-	if (flub->stack_trace == NULL) {
-		fprintf(stderr, "flub_append failed: unable to append " \
-			"function_name.\n");
-		exit(EXIT_FAILURE);
-	}
-	free(temp_string);
+	strcat(flub->stack_trace, function_name);
 
 	// Return the flub.
 	return flub;
@@ -157,9 +71,9 @@ struct flub* flub_catch_normal(struct flub* flub) {
 	// Validate arugments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
-		fprintf(stderr, "flub_catch failed: struct flub " \
+		fprintf(stderr, "flub_catch() failed: struct flub " \
 			"is NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	#endif
 
@@ -192,9 +106,9 @@ struct flub* flub_free_normal(struct flub* flub) {
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
-		fprintf(stderr, "flub_free failed: struct flub " \
+		fprintf(stderr, "flub_free() failed: struct flub " \
 			"is NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	#endif
 
@@ -222,7 +136,7 @@ char* flub_message_get_normal(struct flub* flub) {
 	if (flub == NULL) {
 		fprintf(stderr, "flub_message_get() failed: " \
 			"struct flub is NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	#endif
 
@@ -243,7 +157,7 @@ void flub_print_normal(struct flub* flub) {
 	if (flub == NULL) {
 		fprintf(stderr, "flub_print() failed: struct flub " \
 			"is NULL.\n");
-		exit(EXIT_FAILURE);
+		return;
 	}
 	#endif
 
@@ -270,7 +184,7 @@ char* flub_stack_trace_get_normal(struct flub* flub) {
 	if (flub == NULL) {
 		fprintf(stderr, "flub_stack_trace_get() failed; struct flub " \
 			"is NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	#endif
 
@@ -292,56 +206,70 @@ struct flub* flub_throw_normal(char* message, char* function_name, unsigned long
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (message == NULL) {
-		fprintf(stderr, "struct flub_throw failed: message " \
+		fprintf(stderr, "flub_throw() failed: message " \
 			"arugment was NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	if (function_name == NULL) {
-		fprintf(stderr, "struct flub_throw failed: " \
+		fprintf(stderr, "flub_throw() failed: " \
 			"function_name argument was NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	#endif
 
 	// Check for zero error code.
+	#ifdef DEBUG_FLUB
 	if (error_code == 0) {
 		fprintf(stderr, "WARNING!\nWARNING!\nWARNING!\n" \
 			"Using zero value for error_code of flub " \
 			"will almost certainly break compact flub; " \
 			"consider using a non-zero error_code.\n");
 	}
+	#endif
 
 	// Allocate space for the new flub.
-	struct flub* flub = (struct flub*)malloc(
-				       sizeof(struct flub));
+	struct flub* flub = (struct flub*)malloc(sizeof(struct flub));
 	if (flub == NULL) {
-		fprintf(stderr, "Malloc failed during flub creation.");
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "flub_throw() failed; unable to allocate " \
+				"memory for struct flub.\n");
+		return NULL;
 	}
 
 	// Assign the new flub's message.
-	flub->message = flub_string_copy(message);
+	flub->message = (char*)malloc(sizeof(char) * (strlen(message) + 1));
 	if (flub->message == NULL) {
-		fprintf(stderr, "flub_throw failed: " \
-			"flub_string_copy returned NULL when copying " \
-			"message.\n");
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "flub_throw() failed; unable to allocate " \
+				"memory for message.\n");
+		goto free_flub;
 	}
+	strcpy(flub->message, message);
 
 	// Assign the new flub's function name.
-	flub->stack_trace = flub_string_copy(function_name);
-	if (flub->message == NULL) {
-		fprintf(stderr, "struct flub_throw failed: " \
-			"flub_string_copy returned NULL when copying " \
-			"function_name.\n");
-		exit(EXIT_FAILURE);
+	flub->stack_trace = (char*)malloc(sizeof(char) * 
+					  (strlen(function_name) + 1));
+	if (flub->stack_trace == NULL) {
+		fprintf(stderr, "flub_throw() failed; unable to allocate " \
+				"memory for stack trace.\n");
+		goto free_message;
 	}
+	flub->stack_trace = strcpy(flub->stack_trace, function_name);
 
 	// Assign the new flub's error code.
 	flub->error_code = error_code;
 
 	// Return the new flub.
 	return flub;
+
+free_message:
+	// Free the flub's message.
+	free(flub->message);
+
+free_flub:
+	// Free the struct flub.
+	free(flub);
+
+	// Return NUll.
+	return NULL;
 }
 
 
@@ -357,7 +285,7 @@ unsigned long flub_yoink_normal(struct flub* flub) {
 	if (flub == NULL) {
 		fprintf(stderr, "flub_yoink failed: " \
 			"flub was NULL.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	#endif
 
