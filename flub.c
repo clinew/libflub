@@ -1,10 +1,10 @@
 /*
- * Copyright 2011-2012 by Wade Cline.
+ * Copyright 2011-2013 by Wade Cline.
  *
  * Original Author: Wade Cline (clinew)
  * File: flub.c
  * Created: 2011 October 5th by clinew.
- * Last Modified: 2012 August 11th, by clinew.
+ * Last Modified: 2013 January 4th, by clinew.
  * 
  * See: "flub.h".
  */	

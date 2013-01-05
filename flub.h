@@ -1,14 +1,14 @@
 /* 
- * Copyright 2011-2012 by Wade Cline.
+ * Copyright 2011-2013 by Wade Cline.
  *
  * Original Author: Wade Cline (clinew)
  * File: flub.h
  * Created: 2011 October 5th by clinew.
- * Last Modified: 2012 August 11th, by clinew.
+ * Last Modified: 2013 January 4th, by clinew.
  *
  * This file contains a C structure and appropriate functions to allow
  * error-checking and detection. It's structure is similar to that of
- * flubs in newer programming languages. See the function headers
+ * exceptions in newer programming languages. See the function headers
  * or the README file for more details.
  */
 
