@@ -4,7 +4,7 @@
  * Original Author: Wade Cline (clinew)
  * File: flub.c
  * Created: 2011 October 5th by clinew.
- * Last Modified: 2013 January 4th, by clinew.
+ * Last Modified: 2013 January 10th, by clinew.
  * 
  * See: "flub.h".
  */	
@@ -13,7 +13,7 @@
 #include "flub.h"
 
 
-struct flub* flub_append_compact(struct flub* flub) {
+inline struct flub* flub_append_compact(struct flub* flub) {
 	// Return the specified flub.
 	return flub;
 }
@@ -58,73 +58,164 @@ struct flub* flub_append_normal(struct flub* flub, char* function_name) {
 }
 
 
-struct flub* flub_catch_compact(struct flub* flub) {
+void flub_catch_compact(struct flub* flub) {
 	// Print the specified flub's message.
 	flub_print_compact(flub);
 
-	// Return no error.
-	return 0;
+	// Return.
+	return;
 }
 
 
-struct flub* flub_catch_normal(struct flub* flub) {
+void flub_catch_normal(struct flub* flub) {
 	// Validate arugments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
 		fprintf(stderr, "flub_catch() failed: struct flub " \
 			"is NULL.\n");
-		return NULL;
+		return;
 	}
 	#endif
 
 	// Print the flub message.
 	flub_print(flub);
 
-	// Free the flub and return NULL.
-	return flub_free(flub);
+	// Free the flub's resources.
+	flub_free(flub);
+
+	// Free the flub itself.
+	free(flub);
+
+	// Return.
+	return;
 }
 
 
-unsigned long flub_error_code_get_compact(struct flub* flub) {
+inline unsigned long flub_error_code_get_compact(struct flub* flub) {
 	// Just call the compact version of flub yoink.
 	return flub_yoink_compact(flub);
 }
 
 
-unsigned long flub_error_code_get_normal(struct flub* flub) {
+inline unsigned long flub_error_code_get_normal(struct flub* flub) {
 	// Just call the normal version of flub yoink.
 	return flub_yoink_normal(flub);
 }
 
-struct flub* flub_free_compact(struct flub* flub) {
-	// Return success. Nothing needs to be done.
-	return NULL;
+
+inline void flub_free_compact(struct flub* flub) {
+	; // Do nothing.
 }
 
 
-struct flub* flub_free_normal(struct flub* flub) {
+void flub_free_normal(struct flub* flub) {
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
 		fprintf(stderr, "flub_free() failed: struct flub " \
 			"is NULL.\n");
-		return NULL;
+		return;
 	}
 	#endif
 
 	// Free the specified flub's members.
 	free(flub->message);
 	free(flub->stack_trace);
-
-	// Free the flub itself.
-	free(flub);
-
-	// Return success.
-	return NULL;
 }
 
 
-char* flub_message_get_compact(struct flub* flub) {
+void flub_grab_compact(struct flub* flub) {
+	// Print the flub.
+	flub_print_compact(flub);
+
+	// Return.
+	return;
+}
+
+
+void flub_grab_normal(struct flub* flub) {
+	// Validate arguments.
+	#ifdef DEBUG_FLUB
+	if (flub == NULL) {
+		fprintf(stderr, "flub_grab() failed: struct flub " \
+			"is NULL.\n");
+		return;
+	}
+	#endif
+
+	// Print the flub.
+	flub_print_normal(flub);
+
+	// Free the flub.
+	flub_free_normal(flub);
+
+	// Return.
+	return;
+}
+
+
+/*!	\brief Helper function that allocates space for and assigns flub
+ * 	members.
+ *
+ * 	\return	0 on success; -1 on failure.
+ */
+static int flub_init_normal(struct flub* flub, char* message,
+			    char* function_name, unsigned long error_code) {
+	// Validate parameters.
+	#ifdef DEBUG_FLUB
+	if (flub == NULL) {
+		fprintf(stderr, "flub_init_normal() failed; specified " \
+			"flub was NULL.\n");
+		return NULL;
+	}
+	if (message == NULL) {
+		fprintf(stderr, "flub_init_normal() failed; specified " \
+			"message was NULL.\n");
+		return NULL;
+	}
+	if (function_name == NULL) {
+		fprintf(stderr, "flub_init_normal() failed; specified " \
+			"function_name was NULL.\n");
+		return NULL;
+	}
+	flub_validate_error_code(error_code);
+	#endif
+
+	// Assign the new flub's message.
+	flub->message = (char*)malloc(sizeof(char) * (strlen(message) + 1));
+	if (flub->message == NULL) {
+		fprintf(stderr, "flub_init_normal() failed; unable to " \
+				"allocate memory for message.\n");
+		return -1;
+	}
+	strcpy(flub->message, message);
+
+	// Assign the new flub's function name.
+	flub->stack_trace = (char*)malloc(sizeof(char) * 
+					  (strlen(function_name) + 1));
+	if (flub->stack_trace == NULL) {
+		fprintf(stderr, "flub_init_normal() failed; unable to " \
+				"allocate memory for stack trace.\n");
+		goto free_message;
+	}
+	flub->stack_trace = strcpy(flub->stack_trace, function_name);
+
+	// Assign the new flub's error code.
+	flub->error_code = error_code;
+
+	// Return success.
+	return 0;
+
+free_message:
+	// Free the flub's message.
+	free(flub->message);
+
+	// Return failure.
+	return -1;
+}
+
+
+inline char* flub_message_get_compact(struct flub* flub) {
 	// Return nothing; there's no string to return.
 	return NULL;
 }
@@ -172,7 +263,7 @@ void flub_print_normal(struct flub* flub) {
 }
 
 
-char* flub_stack_trace_get_compact(struct flub* flub) {
+inline char* flub_stack_trace_get_compact(struct flub* flub) {
 	// Return NULL; there's no actual stack trace attached.
 	return NULL;
 }
@@ -193,7 +284,7 @@ char* flub_stack_trace_get_normal(struct flub* flub) {
 }
 
 
-struct flub* flub_throw_compact(unsigned long error_code) {
+inline struct flub* flub_throw_compact(unsigned long error_code) {
 	// A little dirty. Since we specified an unsigned long, cast the long
 	// to a struct flub pointer and return the value of the pointer. This
 	// will work as long as the successful error code is defined to be 0.
@@ -203,6 +294,8 @@ struct flub* flub_throw_compact(unsigned long error_code) {
 
 
 struct flub* flub_throw_normal(char* message, char* function_name, unsigned long error_code) {
+	struct flub* flub;
+
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (message == NULL) {
@@ -215,65 +308,98 @@ struct flub* flub_throw_normal(char* message, char* function_name, unsigned long
 			"function_name argument was NULL.\n");
 		return NULL;
 	}
-	#endif
-
-	// Check for zero error code.
-	#ifdef DEBUG_FLUB
-	if (error_code == 0) {
-		fprintf(stderr, "WARNING!\nWARNING!\nWARNING!\n" \
-			"Using zero value for error_code of flub " \
-			"will almost certainly break compact flub; " \
-			"consider using a non-zero error_code.\n");
-	}
+	flub_validate_error_code(error_code);
 	#endif
 
 	// Allocate space for the new flub.
-	struct flub* flub = (struct flub*)malloc(sizeof(struct flub));
+	flub = (struct flub*)malloc(sizeof(struct flub));
 	if (flub == NULL) {
 		fprintf(stderr, "flub_throw() failed; unable to allocate " \
 				"memory for struct flub.\n");
 		return NULL;
 	}
 
-	// Assign the new flub's message.
-	flub->message = (char*)malloc(sizeof(char) * (strlen(message) + 1));
-	if (flub->message == NULL) {
-		fprintf(stderr, "flub_throw() failed; unable to allocate " \
-				"memory for message.\n");
+	// Initialize the flub.
+	if (flub_init_normal(flub, message, function_name, error_code) == -1) {
+		fprintf(stderr, "flub_throw() failed; unable to initialize "
+				"flub.\n");
 		goto free_flub;
 	}
-	strcpy(flub->message, message);
-
-	// Assign the new flub's function name.
-	flub->stack_trace = (char*)malloc(sizeof(char) * 
-					  (strlen(function_name) + 1));
-	if (flub->stack_trace == NULL) {
-		fprintf(stderr, "flub_throw() failed; unable to allocate " \
-				"memory for stack trace.\n");
-		goto free_message;
-	}
-	flub->stack_trace = strcpy(flub->stack_trace, function_name);
-
-	// Assign the new flub's error code.
-	flub->error_code = error_code;
 
 	// Return the new flub.
 	return flub;
-
-free_message:
-	// Free the flub's message.
-	free(flub->message);
 
 free_flub:
 	// Free the struct flub.
 	free(flub);
 
-	// Return NUll.
+	// Return NULL.
 	return NULL;
 }
 
 
-unsigned long flub_yoink_compact(struct flub* flub) {
+inline struct flub* flub_toss_compact(struct flub* flub,
+				      unsigned long error_code) {
+	// Ignore the specified flub and call the throw function.
+	return flub_throw_compact(error_code);
+}
+
+
+struct flub* flub_toss_normal(struct flub* flub, char* message,
+			      char* function_name, unsigned long error_code) {
+	// Validate arguments.
+	#ifdef DEBUG_FLUB
+	if (flub == NULL) {
+		fprintf(stderr, "flub_toss() failed: specified flub " \
+			"was NULL.\n");
+		return NULL;
+	}
+	if (message == NULL) {
+		fprintf(stderr, "flub_toss() failed: specified message " \
+			"was NULL.\n");
+		return NULL;
+	}
+	if (function_name == NULL) {
+		fprintf(stderr, "flub_toss() failed: specified " \
+			"function_name was NULL.\n");
+		return NULL;
+	}
+	flub_validate_error_code(error_code);
+	#endif
+
+	// Initialize the flub.
+	if (flub_init_normal(flub, message, function_name, error_code) == -1) {
+		fprintf(stderr, "flub_toss() failed: unable to " \
+			"initialize flub.\n");
+		return NULL;
+	}
+
+	// Return the flub.
+	return flub;
+}
+
+
+/*!	\brief Validate the specified error code. Zero is the only invalid
+ * 	value.
+ */
+#ifdef DEBUG_FLUB
+static void flub_validate_error_code(unsigned long error_code) {
+	// Validate the error code.
+	if (error_code == 0) {
+		fprintf(stderr, "WARNING!\nWARNING!\nWARNING!\n" \
+			"Using zero value for error_code of flub " \
+			"will almost certainly break compact flub; " \
+			"consider using a non-zero error_code.\n");
+	}
+}
+#else
+static inline void flub_validate_error_code(unsigned long error_code) {
+	; // Do nothing.
+}
+#endif // DEBUG_FLUB
+
+
+inline unsigned long flub_yoink_compact(struct flub* flub) {
 	// Cast the flub back into its true form and return it!
 	return (unsigned long)flub;
 }

@@ -1,5 +1,5 @@
-Please note that this README has not been peer-reviewed. If you find any flaws in
-it or in the library, please e-mail the author at clinew@onid.orst.edu.
+Please note that this README has not been peer-reviewed. If you find any flaws
+in it or in the library, please e-mail the author at clinew@onid.orst.edu.
 
 Introduction:
 
@@ -90,6 +90,18 @@ they can use the flub_yoink() function.
 The flub_yoink() function will know whether to cast the pointer back into
 an unsigned long or whether to dereference the structure and return the
 appropriate member.
+
+Throw/Catch Versus Toss/Grab:
+
+Throw will dynamically allocate space for a struct flub and catch will free
+that space. Toss will accept a pre-allocated struct flub and grab will free the
+members of the flub but not the flub itself.
+
+Throw/catch should always be used as a pair and toss/grab should always be
+used as a pair. The danger to throw/catch is that memory allocation may fail
+and the program will have no way of knowing that an error occurred. Memory
+allocation may also fail in toss/grab unless the not-yet-implemented flub
+static feature is in use (it's in progress!).
 
 Caveats:
 
