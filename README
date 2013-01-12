@@ -100,8 +100,9 @@ members of the flub but not the flub itself.
 Throw/catch should always be used as a pair and toss/grab should always be
 used as a pair. The danger to throw/catch is that memory allocation may fail
 and the program will have no way of knowing that an error occurred. Memory
-allocation may also fail in toss/grab unless the not-yet-implemented flub
-static feature is in use (it's in progress!).
+allocation may also fail in toss/grab; in this case, the error code will still
+be assigned to the structure and can be retrieved with flub_yoink(); the
+message and stack trace will both be NULL.
 
 Caveats:
 
@@ -114,6 +115,9 @@ include that will include flub.h and the proper define, or lack thereof.
 The value of zero is -never- a valid error code. This is because if
 FLUB_COMPACT is enabled, the value of zero will be assigned to the pointer.
 In this case, all checks for flub in the form of "if (flub)" will return false,
-and the program will assume no error occurred. Warnings have been placed in the
-non-compact version of flub_throw() to hopefully prevent this from
-inadvertently happening.
+and the program will assume no error occurred. 
+
+flub_yoink() will return the value 0 if dynamic allocation of the flub
+itself has failed; this should only occur the system runs out of memory
+and using flub_throw() when compact flubs are not enabled. To avoid this,
+use flub_toss() instead.

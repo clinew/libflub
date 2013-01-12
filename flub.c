@@ -13,6 +13,10 @@
 #include "flub.h"
 
 
+static int flub_malloc_error(struct flub* flub);
+static void flub_validate_error_code(unsigned long error_code);
+
+
 inline struct flub* flub_append_compact(struct flub* flub) {
 	// Return the specified flub.
 	return flub;
@@ -20,6 +24,7 @@ inline struct flub* flub_append_compact(struct flub* flub) {
 
 
 struct flub* flub_append_normal(struct flub* flub, char* function_name) {
+	void* temp;
 	size_t length;
 
 	// Validate arguments.
@@ -36,22 +41,33 @@ struct flub* flub_append_normal(struct flub* flub, char* function_name) {
 	}
 	#endif
 
-	// Calculate the new length of the stack trace.
-	// +4 for extra whitespace characters and null byte.
-	length = strlen(flub->stack_trace) + strlen(function_name) + 4;
-
-	// Reallocate space for the stack trace.
-	if (realloc(flub->stack_trace, length) == NULL) {
-		fprintf(stderr, "flub_append() failed: unable to reallocate " \
-				"space.\n");
+	// Check for malloc error.
+	if (flub_malloc_error(flub)) {
 		return flub;
 	}
 
-	// Add a newline, tab, and list marker to the flub's stack trace.
-	strcat(flub->stack_trace, "\n\t-");
+	// Calculate the new length of the stack trace.
+	// +2 for delimeter and null byte.
+	length = strlen(flub->stack_trace) + strlen(function_name) + 2;
 
-	// Add the specified function name to the flub's stack trace.
+	// Reallocate space for the stack trace.
+	temp = realloc(flub->stack_trace, length);
+	if (temp == NULL) {
+		// Set the last char of the stack trace to '!' instead of ','.
+		// This will let the user know that a realloc failed and that
+		// part of the stack trace is missing.
+		flub->stack_trace[strlen(flub->stack_trace) - 1] = '!';
+
+		// Return the flub.
+		return flub;
+	}
+	flub->stack_trace = temp;
+
+	// Concatenate the specified function name.
 	strcat(flub->stack_trace, function_name);
+
+	// Concatenate the delimeter.
+	strcat(flub->stack_trace, ",");
 
 	// Return the flub.
 	return flub;
@@ -77,14 +93,13 @@ void flub_catch_normal(struct flub* flub) {
 	}
 	#endif
 
-	// Print the flub message.
-	flub_print(flub);
-
-	// Free the flub's resources.
-	flub_free(flub);
+	// Reuse the grab function.
+	flub_grab_normal(flub);
 
 	// Free the flub itself.
-	free(flub);
+	if (flub != (struct flub*)FLUB_ADDRESS_BAD) {
+		free(flub);
+	}
 
 	// Return.
 	return;
@@ -117,6 +132,12 @@ void flub_free_normal(struct flub* flub) {
 		return;
 	}
 	#endif
+
+	// Check for malloc error.
+	if (flub_malloc_error(flub)) {
+		// No memory to free.
+		return;
+	}
 
 	// Free the specified flub's members.
 	free(flub->message);
@@ -154,64 +175,95 @@ void flub_grab_normal(struct flub* flub) {
 }
 
 
-/*!	\brief Helper function that allocates space for and assigns flub
- * 	members.
+/*!	\brief Helper function that allocates space for and assigns the
+ * 	specified flub's members.
  *
- * 	\return	0 on success; -1 on failure.
+ * 	The error code is always assigned. The message and stack trace are
+ * 	either both assigned or are both not assigned.
  */
-static int flub_init_normal(struct flub* flub, char* message,
+static void flub_init_normal(struct flub* flub, char* message,
 			    char* function_name, unsigned long error_code) {
 	// Validate parameters.
 	#ifdef DEBUG_FLUB
-	if (flub == NULL) {
+	if (flub == NULL || flub == (struct flub*)FLUB_ADDRESS_BAD) {
 		fprintf(stderr, "flub_init_normal() failed; specified " \
-			"flub was NULL.\n");
-		return NULL;
+			"flub was NULL or bad: %p.\n", (void*)flub);
+		return;
 	}
 	if (message == NULL) {
 		fprintf(stderr, "flub_init_normal() failed; specified " \
 			"message was NULL.\n");
-		return NULL;
+		return;
 	}
 	if (function_name == NULL) {
 		fprintf(stderr, "flub_init_normal() failed; specified " \
 			"function_name was NULL.\n");
-		return NULL;
+		return;
 	}
 	flub_validate_error_code(error_code);
 	#endif
 
-	// Assign the new flub's message.
+	// Assign the flub's error code.
+	flub->error_code = error_code;
+
+	// Assign the flub's message.
 	flub->message = (char*)malloc(sizeof(char) * (strlen(message) + 1));
 	if (flub->message == NULL) {
-		fprintf(stderr, "flub_init_normal() failed; unable to " \
-				"allocate memory for message.\n");
-		return -1;
+		flub->stack_trace = NULL;
+		return;
 	}
 	strcpy(flub->message, message);
 
-	// Assign the new flub's function name.
+	// Assign the flub's function name.
+	// +2 for delimeter and null byte.
 	flub->stack_trace = (char*)malloc(sizeof(char) * 
-					  (strlen(function_name) + 1));
+					  (strlen(function_name) + 2));
 	if (flub->stack_trace == NULL) {
-		fprintf(stderr, "flub_init_normal() failed; unable to " \
-				"allocate memory for stack trace.\n");
 		goto free_message;
 	}
 	flub->stack_trace = strcpy(flub->stack_trace, function_name);
+	strcat(flub->stack_trace, ",");
 
-	// Assign the new flub's error code.
-	flub->error_code = error_code;
-
-	// Return success.
-	return 0;
+	// Return.
+	return;
 
 free_message:
 	// Free the flub's message.
 	free(flub->message);
+	flub->message = NULL;
 
-	// Return failure.
-	return -1;
+	// Return.
+	return;
+}
+
+
+/*!	\brief Helper function that checks whether there was an error
+ * 	during dynamic memory allocation for the specified flub.
+ *
+ * 	Either an error allocating the flub itself or an error allocating
+ * 	the flub's members will cause this function to return true.
+ *
+ * 	\return	1 if there was on error; 0 if there wasn't an error.
+ */
+static int flub_malloc_error(struct flub* flub) {
+	// Validate arguments (obsessively).
+	#ifdef DEBUG_FLUB
+	if (flub == NULL) {
+		fprintf(stderr, "flub_malloc_error() failed: " \
+			"specified flub was NULL.\n");
+		return 1;
+	}
+	#endif
+
+	// Check for malloc error. The message and stack trace are always both
+	// malloc'd or neither are malloc'd.
+	if (flub == (struct flub*)FLUB_ADDRESS_BAD || flub->message == NULL) {
+	    	// Return true.
+		return 1;
+	}
+
+	// Return false.
+	return 0;
 }
 
 
@@ -231,6 +283,11 @@ char* flub_message_get_normal(struct flub* flub) {
 	}
 	#endif
 
+	// Check for malloc error.
+	if (flub_malloc_error(flub)) {
+		return NULL;
+	}
+
 	// Return the specified flub's message.
 	return flub->message;
 }
@@ -243,6 +300,8 @@ void flub_print_compact(struct flub* flub) {
 
 
 void flub_print_normal(struct flub* flub) {
+	char* cur;
+
 	// Validate arguments.
 	#ifdef DEBUG_FLUB
 	if (flub == NULL) {
@@ -252,14 +311,50 @@ void flub_print_normal(struct flub* flub) {
 	}
 	#endif
 
-	// Print the flub to standard error.
+	// Check for flub malloc error.
+	if (flub == (struct flub*)FLUB_ADDRESS_BAD) {
+		// No flub at all; let the user know.
+		fprintf(stderr, "ERROR: flub address indicates dynamic " \
+			"allocation failed.\n");
+		return;
+	}
+
+	// Print the flub header to standard error.
 	fprintf(stderr, "\n*** FLUB ***\n" \
 		"Error Code: %lu\n" \
 		"Message: %s\n" \
-		"Stack Trace: \n\t-%s\n" \
-		"*****************\n\n", \
-		flub->error_code, flub->message, 
-		flub->stack_trace);
+		"Stack Trace: \n\t",
+		flub->error_code,
+		flub->message ? flub->message : "<Allocation failed>");
+	
+	// Print the flub stack trace to standard error.
+	cur = flub->stack_trace;
+	if (cur == NULL) {
+		fprintf(stderr, "<Allocation failed>");
+	} else {
+		char symbol;
+
+		fprintf(stderr, "-");
+		while ((symbol = (*cur++)) != '\0') {
+			// Regular character.
+			if (symbol != ',' && symbol != '!') {
+				fprintf(stderr, "%c", symbol);
+			// Delimeter.
+			} else {
+				// End of the stack trace proper.
+				if (*cur == '\0' && symbol == ',') {
+					; // Do nothing.
+				// Another function or missing function(s).
+				} else {
+					fprintf(stderr, "\n\t%c",
+						(symbol == ',') ? '-' : '!');
+				}
+			}
+		}
+	}
+
+	// Print the flub tail to standard error.
+	fprintf(stderr, "\n*****************\n\n");
 }
 
 
@@ -278,6 +373,11 @@ char* flub_stack_trace_get_normal(struct flub* flub) {
 		return NULL;
 	}
 	#endif
+
+	// Check for malloc failure.
+	if (flub_malloc_error(flub)) {
+		return NULL;
+	}
 
 	// Return the stack trace.
 	return flub->stack_trace;
@@ -301,40 +401,24 @@ struct flub* flub_throw_normal(char* message, char* function_name, unsigned long
 	if (message == NULL) {
 		fprintf(stderr, "flub_throw() failed: message " \
 			"arugment was NULL.\n");
-		return NULL;
+		return (struct flub*)FLUB_ADDRESS_BAD;
 	}
 	if (function_name == NULL) {
 		fprintf(stderr, "flub_throw() failed: " \
 			"function_name argument was NULL.\n");
-		return NULL;
+		return (struct flub*)FLUB_ADDRESS_BAD;
 	}
 	flub_validate_error_code(error_code);
 	#endif
 
-	// Allocate space for the new flub.
+	// Allocate space for a new flub.
 	flub = (struct flub*)malloc(sizeof(struct flub));
 	if (flub == NULL) {
-		fprintf(stderr, "flub_throw() failed; unable to allocate " \
-				"memory for struct flub.\n");
-		return NULL;
+		return (struct flub*)FLUB_ADDRESS_BAD;
 	}
 
-	// Initialize the flub.
-	if (flub_init_normal(flub, message, function_name, error_code) == -1) {
-		fprintf(stderr, "flub_throw() failed; unable to initialize "
-				"flub.\n");
-		goto free_flub;
-	}
-
-	// Return the new flub.
-	return flub;
-
-free_flub:
-	// Free the struct flub.
-	free(flub);
-
-	// Return NULL.
-	return NULL;
+	// Toss the new flub.
+	return flub_toss_normal(flub, message, function_name, error_code);
 }
 
 
@@ -368,11 +452,7 @@ struct flub* flub_toss_normal(struct flub* flub, char* message,
 	#endif
 
 	// Initialize the flub.
-	if (flub_init_normal(flub, message, function_name, error_code) == -1) {
-		fprintf(stderr, "flub_toss() failed: unable to " \
-			"initialize flub.\n");
-		return NULL;
-	}
+	flub_init_normal(flub, message, function_name, error_code);
 
 	// Return the flub.
 	return flub;
@@ -411,9 +491,14 @@ unsigned long flub_yoink_normal(struct flub* flub) {
 	if (flub == NULL) {
 		fprintf(stderr, "flub_yoink failed: " \
 			"flub was NULL.\n");
-		return NULL;
+		return 0;
 	}
 	#endif
+
+	// Check for malloc error.
+	if (flub == (struct flub*)FLUB_ADDRESS_BAD) {
+		return 0;
+	}
 
 	// Return the error code.
 	return flub->error_code;

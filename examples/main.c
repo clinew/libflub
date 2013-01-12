@@ -1,3 +1,4 @@
+// Uncomment this to enable compact flubs.
 //#define FLUB_COMPACT
 #include "../flub.h"
 

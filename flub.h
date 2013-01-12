@@ -17,9 +17,14 @@
 #define flub_H
 
 
+// Debugging.
 #ifdef DEBUG
 #define DEBUG_FLUB
 #endif
+
+// Memory address to indicate there was an error allocating a dynamically-
+// allocated flub. I'm pretty sure that this address is never actually used.
+#define FLUB_ADDRESS_BAD 0x1UL
 
 
 #include <string.h>
@@ -154,7 +159,8 @@ inline unsigned long flub_error_code_get_compact(struct flub* flub);
  * 	\warning Do not call this function yourself; it will be called
  *	automatically by flub_error_code_get() when compact flubs are not set.
  *
- * 	\return The error code of the specified flub.
+ * 	\return The error code of the specified flub; 0 if dynamic allocation
+ * 	failed.
  */
 inline unsigned long flub_error_code_get_normal(struct flub* flub);
 
@@ -271,7 +277,8 @@ char* flub_stack_trace_get_normal(struct flub* flub);
  *	\warning Do not call this function yourself; it will be called
  *	automatically by flub_throw() when compact flubs are set.
  *
- * 	\return	The error code cast as a struct flub pointer.
+ * 	\return	The error code cast as a struct flub pointer; FLUB_ADDRESS_BAD
+ * 	if dynamic allocation fails.
  */
 inline struct flub* flub_throw_compact(unsigned long error_code);
 
@@ -347,7 +354,8 @@ inline unsigned long flub_yoink_compact(struct flub* flub);
  *	\warning Do not call this function yourself; it will be called
  *	automatically by flub_throw() when compact flubs are set.
  *
- * 	\return	The error code of the specified flub.
+ * 	\return	The error code of the specified flub; 0 if dynamic allocation
+ * 	failed.
  */
 unsigned long flub_yoink_normal(struct flub* flub);
 

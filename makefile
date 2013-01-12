@@ -4,7 +4,7 @@ objects = flub.o
 
 
 # Version information.
-major_number = 3
+major_number = 4
 minor_number = 0
 release_number = 0
 version = ${major_number}.${minor_number}.${release_number}
