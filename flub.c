@@ -4,7 +4,6 @@
  * Original Author: Wade Cline (clinew)
  * File: flub.c
  * Created: 2011 October 5th by clinew.
- * Last Modified: 2013 January 10th, by clinew.
  * 
  * See: "flub.h".
  */	

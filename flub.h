@@ -4,7 +4,6 @@
  * Original Author: Wade Cline (clinew)
  * File: flub.h
  * Created: 2011 October 5th by clinew.
- * Last Modified: 2013 January 10th, by clinew.
  *
  * This file contains a C structure and appropriate functions to allow
  * error-checking and detection. It's structure is similar to that of
