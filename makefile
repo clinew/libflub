@@ -16,7 +16,7 @@ soname = ${linker_name}.${major_number}
 real_name = ${linker_name}.${version}
 
 # Library paths.
-base_path = /usr/
+base_path = /usr/local/
 include_path = ${base_path}include/
 library_path = ${base_path}lib/
 
