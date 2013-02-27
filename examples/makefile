@@ -1,3 +1,3 @@
 
 default:
-	gcc -O2 -o main main.c ../flub.c
+	gcc -rdynamic -ggdb -o main main.c ../flub.c

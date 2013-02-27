@@ -4,55 +4,61 @@ in it or in the library, please e-mail the author at clinew@onid.orst.edu.
 Introduction:
 
 libflub is a simple way to handle errors in C code. The structure allows the
-user to easily specify an error message, stack trace, and error code.
+user to easily specify and return an error message, backtrace, and error code
+at any given point in the program.
 
 Rather than having each function return an integer indicating success or
 failure, the function will simply return a pointer to a flub structure. If the
 pointer is non-null, then an error occurred and the stucture can be printed,
-or it can have the calling function's name appended to it and then be returned
-again until a function decides to handle it be printing and/or freeing the flub.
+or it can be passed again until a function decides to handle it be printing
+and/or freeing the flub.
 
 Example:
 
-A function foo() can return an error with:
+A function hello() can return an error with:
 
-	#define ERROR_CODE 1
+	#define BADNESS 0xDEADBEEF
+	static struct flub flub;
 	...
-	char* function_name = "foo()";
-	...
-	return flub_throw("An error occurred!", function_name, ERROR_CODE);
+	return flub_toss(&flub, "Badness ensued!", BADNESS);
 	...
 
-The calling function, bar(), can then return the error back to its caller with:
+The calling function, world(), can then return the error back to its caller with:
 
-	char* function_name = "bar()";
 	struct flub* flub;
 	...
-	flub = foo();
+	flub = hello();
 	if (flub) { // Represents failure.
-		return flub_append(flub, function_name);
+		return flub;
 	}
 	return NULL; // Represents success.
 	...
 
-Then bar()'s calling function, main(), can print the error with:
+Then world()'s calling function, main(), can print the error and free the
+resources with:
 
 	struct flub* flub;
 	...
-	flub = bar();
+	flub = world();
 	if (flub) {
-		flub = flub_catch(flub);
+		flub_print(flub);
+		flub_grab(flub);
 	}
 	...
 
-flub_catch() will then print:
+flub_print() will then print the backtrace, which may look something like:
 
 	*** FLUB ***
-	Error Code: 1
-	Message: An error occurred!
-	Stack Trace: 
-		-foo()
-		-bar()
+	Error Code: 3735928559
+	Message: Badness ensued!
+	Backtrace: 
+
+	./main(hello+0x3d) [0xb773dce9]
+	./main(world+0x16) [0xb773dd16]
+	./main(main+0x42) [0xb773dd7e]
+	/lib/libc.so.6(__libc_start_main+0xe6) [0xb759a566]
+	./main(+0xbc1) [0xb773dbc1]
+
 	*****************
 
 This allows one to easily find what caused the error. Of course, all the extra
@@ -72,11 +78,10 @@ For example, suppose the previous code had the following segment:
 
 Then the output of flub_catch() would be:
 
-	Error Code: 1.
+	Error Code: 3735928559.
 
 and the string "An error occurred!" would not be included in the program
-output, and neither are the function names if optimization is specified
-(-O2 seems to work on gcc, but the function names are included when no
+output. (-O2 seems to work on gcc, but the strings are included when no
 optimization is specified).
 
 Alternatively, if one simply wants to extract the error code from the flub,
@@ -91,19 +96,6 @@ The flub_yoink() function will know whether to cast the pointer back into
 an unsigned long or whether to dereference the structure and return the
 appropriate member.
 
-Throw/Catch Versus Toss/Grab:
-
-Throw will dynamically allocate space for a struct flub and catch will free
-that space. Toss will accept a pre-allocated struct flub and grab will free the
-members of the flub but not the flub itself.
-
-Throw/catch should always be used as a pair and toss/grab should always be
-used as a pair. The danger to throw/catch is that memory allocation may fail
-and the program will have no way of knowing that an error occurred. Memory
-allocation may also fail in toss/grab; in this case, the error code will still
-be assigned to the structure and can be retrieved with flub_yoink(); the
-message and stack trace will both be NULL.
-
 Caveats:
 
 Make sure to consistently define FLUB_COMPACT before including flub.h.
@@ -117,7 +109,17 @@ FLUB_COMPACT is enabled, the value of zero will be assigned to the pointer.
 In this case, all checks for flub in the form of "if (flub)" will return false,
 and the program will assume no error occurred. 
 
-flub_yoink() will return the value 0 if dynamic allocation of the flub
-itself has failed; this should only occur the system runs out of memory
-and using flub_throw() when compact flubs are not enabled. To avoid this,
-use flub_toss() instead.
+flub_toss() allocates memory via calling the backtrace() and
+backtrace_symbols() system calls and via allocating memory for the error
+message. This memory must be freed by subsequently calling flub_grab().
+
+Getting the symbol (function name) included in the backtrace is apparently
+tricky business. Compiling with the "-rdynamic" option seems to ensure the
+symbol name, though. Of course, that won't help for functions with internal
+linkage (static functions).
+
+TODOs:
+
+The man-page for backtrace_symbols() says that "(The strings pointed to by the
+array of pointers need not and should not be freed.)", but how is that even
+possible?! Will this break on multi-threaded applications? I don't know...
