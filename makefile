@@ -59,6 +59,7 @@ install_actual:
 	@# Make header files readable to all.
 	@chmod 0644 *.h
 	@# Install header files.
+	@mkdir -p ${include_path}
 	@cp -f *.h ${include_path}
 
 
