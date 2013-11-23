@@ -90,7 +90,7 @@ struct flub {
  *
  *	@return The error code embeded within the specified flub pointer.
  */
-inline unsigned long flub_error_get_compact(struct flub* flub);
+unsigned long flub_error_get_compact(struct flub* flub);
 
 
 /**	Returns the error codes of the specified flub.
@@ -101,7 +101,7 @@ inline unsigned long flub_error_get_compact(struct flub* flub);
  * 	@return The error code of the specified flub; 0 if dynamic allocation
  * 	failed.
  */
-inline unsigned long flub_error_get_normal(struct flub* flub);
+unsigned long flub_error_get_normal(struct flub* flub);
 
 
 /**	Pretty prints the specified flub's error code to standard error.
@@ -132,7 +132,7 @@ void flub_grab_normal(struct flub* flub);
  *
  *	@return NULL.
  */
-inline char* flub_message_get_compact(struct flub* flub);
+char* flub_message_get_compact(struct flub* flub);
 
 
 /**	Returns the specified flub's message.
@@ -173,7 +173,7 @@ void flub_print_normal(struct flub* flub);
  *
  * 	@return NULL.
  */
-inline char** flub_backtrace_get_compact(struct flub* flub);
+char** flub_backtrace_get_compact(struct flub* flub);
 
 
 /**	Returns the specified flub's stack trace.
@@ -198,7 +198,7 @@ char** flub_backtrace_get_normal(struct flub* flub);
  *
  * 	@return	The error code cast as a struct flub pointer.
  */
-inline struct flub* flub_toss_compact(struct flub* flub,
+struct flub* flub_toss_compact(struct flub* flub,
 				      unsigned long error);
 
 
@@ -228,7 +228,7 @@ struct flub* flub_toss_normal(struct flub* flub, char* message,
  *
  *	@return The error code of the specified flub.
  */
-inline unsigned long flub_yoink_compact(struct flub* flub);
+unsigned long flub_yoink_compact(struct flub* flub);
 
 
 /**	Get the error code of the specified flub.
